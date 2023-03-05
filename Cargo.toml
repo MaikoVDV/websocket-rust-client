@@ -1,0 +1,16 @@
+[package]
+name = "websocket-game-client"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+log = "0.4.17"
+bevy = "0.9.1"
+futures-util = { version = "0.3.17", default-features = false, features = ["async-await", "sink", "std"] }
+tokio = { version = "1.11.0", default-features = false, features = ["io-util", "macros",  "time", "sync", "net", "rt-multi-thread", "io-std"] }
+quick-protobuf = {git="https://github.com/Descrout/quick-protobuf"}
+tokio-tungstenite = "0.18.0"
+futures-channel = "0.3.26"
+url = "2.3.1"
