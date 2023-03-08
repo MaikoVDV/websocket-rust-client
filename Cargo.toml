@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 log = "0.4.17"
-bevy = "0.9.1"
+bevy = "0.10"
 futures-util = { version = "0.3.17", default-features = false, features = ["async-await", "sink", "std"] }
 tokio = { version = "1.11.0", default-features = false, features = ["io-util", "macros",  "time", "sync", "net", "rt-multi-thread", "io-std"] }
 quick-protobuf = {git="https://github.com/Descrout/quick-protobuf"}

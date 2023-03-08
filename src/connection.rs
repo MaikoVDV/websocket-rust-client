@@ -1,7 +1,7 @@
 use crate::*;
 
 use tokio::net::TcpStream;
-use tokio_tungstenite::{WebSocketStream, MaybeTlsStream};
+use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
 #[derive(Resource, Debug)]
 pub struct WebsocketStream {
@@ -14,7 +14,9 @@ pub async fn init_websocket_connection() -> WebSocketStream<MaybeTlsStream<TcpSt
     let url = url::Url::parse(&addr).unwrap();
     println!("Starting tokio with url {}", url);
 
-    let (ws_stream, _) = connect_async(url).await.expect("Failed to connect");
+    let (ws_stream, _) = connect_async(url)
+        .await
+        .expect("Failed to connect to the server");
     println!("WebSocket handshake has been successfully completed");
     return ws_stream;
 
@@ -25,3 +27,4 @@ pub async fn init_websocket_connection() -> WebSocketStream<MaybeTlsStream<TcpSt
     //     })
     // };
 }
+
