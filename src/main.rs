@@ -1,8 +1,16 @@
+// Importing local modules
 mod broadcast_gameinput;
 mod connection; // Opens & manages the websocket
 mod proto; // Converts data stored in memory to messages to be sent via websocket
 mod receive_state; // Creates thread that listens for state changes over the websocket // Creates thread that broadcasts new GameInputs to the server via the websocket
 
+// Importing from local modules
+use broadcast_gameinput::broadcast_game_input;
+use connection::init_websocket_connection;
+use proto::proto_all::*;
+use receive_state::{get_game_state/*, test_func*/};
+
+// Bevy imports
 use bevy::{
     prelude::*,
     render::{
@@ -11,18 +19,24 @@ use bevy::{
     },
 };
 
-use quick_protobuf::Writer;
-
-use broadcast_gameinput::broadcast_game_input;
-use connection::init_websocket_connection;
-use proto::proto_all::*;
-use receive_state::{get_game_state, test_func};
-
-use futures_util::{future, SinkExt, StreamExt};
-use tokio::sync::mpsc;
-use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
+// Networking & Multithreading (tokio)
+use tokio::sync::{
+    mpsc,
+    watch,
+};
 
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
+
+use quick_protobuf::Writer;
+
+// Futures
+use futures_util::{SinkExt, StreamExt};
+
+// Standard Library imports
+use std::{
+    time,
+};
+
 
 const PORT: &str = "8080";
 //const TIMESTEP: f32 = 1.0 / 60.0; // 60tps server
@@ -31,19 +45,33 @@ const PORT: &str = "8080";
 async fn main() {
     // Creating a websocket for communication with the server.
     let ws_stream = init_websocket_connection().await;
-    let (ws_sender, mut ws_receiver) = ws_stream.split();
+    let (ws_sender, ws_receiver) = ws_stream.split();
+
     // Creating a thread to handle sending GameInputs to the server.
     // Also, creating an mpsc channel to send the inputs from the Bevy app to the thread.
     println!("Creating channel for gameinput communication between threads.");
-    let (input_sender, input_receiver) = mpsc::unbounded_channel::<GameInput>();
+    let (input_sender, input_receiver) = watch::channel::<GameInput>(GameInput::default());
     tokio::spawn(broadcast_game_input(input_receiver, ws_sender));
+
     // Creating a thread to handle receiving new gamestates from the server.
     // Also, creating an mpsc channel to send the state from the thread to the main thread, and to
     // the Bevy app.
     println!("Creating channel for state communication between threads.");
     let (state_sender, state_receiver) = mpsc::unbounded_channel::<GameState>();
     tokio::spawn(get_game_state(state_sender, ws_receiver));
-    //tokio::spawn(test_func(state_sender, ws_receiver));
+
+
+    // Setup native Graphics API for each platform. 
+    let platform_api =
+        if cfg!(target_os = "windows") { 
+            Backends::DX12
+        } else if cfg!(target_os = "macos") { 
+            Backends::METAL
+        } else if cfg!(target_os = "linux") { 
+            Backends::GL
+        } else {
+            panic!("Unsupported platform!"); 
+        };
 
     // Creating the Bevy app. This runs on the main thread, and is sync, so it's blocking.
     // Do not write code after this point, as it will not run until the Bevy app exits.
@@ -61,7 +89,7 @@ async fn main() {
                 })
                 .set(RenderPlugin {
                     wgpu_settings: WgpuSettings {
-                        backends: Some(Backends::GL),
+                        backends: Some(platform_api),
                         ..default()
                     },
                 }),
@@ -127,10 +155,10 @@ fn handle_input(
 // }
 #[derive(Resource, Debug)]
 pub struct GameInputSenderResource {
-    pub sender: UnboundedSender<GameInput>,
+    pub sender: watch::Sender<GameInput>,
 }
 
 #[derive(Resource, Debug)]
 pub struct StateReceiverResource {
-    pub receiver: UnboundedReceiver<proto::proto_all::GameState>,
+    pub receiver: mpsc::UnboundedReceiver<proto::proto_all::GameState>,
 }
