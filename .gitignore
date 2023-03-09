@@ -1,1 +1,4 @@
+# Rust build directory
 /target
+# Auto generated rust file
+/Cargo.lock

@@ -1,14 +1,15 @@
 // Importing local modules
-mod broadcast_gameinput;
-mod connection; // Opens & manages the websocket
 mod proto; // Converts data stored in memory to messages to be sent via websocket
-mod receive_state; // Creates thread that listens for state changes over the websocket // Creates thread that broadcasts new GameInputs to the server via the websocket
+mod gameplay; // Several modules that control everything to do with the game
+mod networking;
 
 // Importing from local modules
-use broadcast_gameinput::broadcast_game_input;
-use connection::init_websocket_connection;
 use proto::proto_all::*;
-use receive_state::get_game_state;
+use networking:: {
+    broadcast_gameinput::broadcast_game_input, // Creates thread that checks for new GameInputs (with a tokio watch channel) and then sends that to the server
+    connection::init_websocket_connection, // Opens & manages the websocket
+    receive_state::get_game_state, // Creates thread that listens for state changes over the websocket // Creates thread that broadcasts new GameInputs to the server via the websocket
+};
 
 // Bevy imports
 use bevy::{
