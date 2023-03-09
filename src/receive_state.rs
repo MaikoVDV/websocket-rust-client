@@ -13,7 +13,7 @@ pub async fn get_game_state(
     mut ws_stream: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
 ) {
     println!("Websocket listener thread created. Entering loop.");
-    let mut amount = 0;
+    let mut _amount = 0;
     while let Some(msg) = ws_stream.next().await {
         if let Ok(msg) = msg {
             if msg.is_binary() {
@@ -22,18 +22,39 @@ pub async fn get_game_state(
                     info!("Received a message with a length of 0 or less. Not processing.");
                     break;
                 }
+                // Header should be 0. Specifies that this is state sent from the server.
                 let header = msg.remove(0);
                 let mut reader = BytesReader::from_bytes(&msg);
-                if header == 0 {
-                    if let Ok(state) = GameState::from_reader(&mut reader, &msg) {
-                        amount += 1;
-                        info!(
-                            "Received state: \nAmount of entities: {},\nAmount of bodies: {},\nAmount of states received: {}",
-                            state.entities.len(),
-                            state.bodies.len(),
-                            amount.to_string()
+                match header {
+                    0 => {
+                        if let Ok(state) = GameState::from_reader(&mut reader, &msg) {
+                            _amount += 1;
+                            info!(
+                                "Received state: \nAmount of entities: {},\nAmount of bodies: {},\nAmount of states received: {}",
+                                state.entities.len(),
+                                state.bodies.len(),
+                                _amount.to_string()
+                            );
+                            let _ = state_sender.send(state);
+                        }
+                    }
+                    1 => {
+                        println!("Received a message with header 1, which is meant for ClientInput messages. 
+                                 This is probably a bug in the server.");
+                    }
+                    2 => {
+                        if let Ok(client_join) = ClientJoined::from_reader(&mut reader, &msg) {
+                            println!(
+                                "Received Message::ClientJoin. The client's id is {}",
+                                client_join.id.to_string()
+                            );
+                        }
+                    }
+                    _ => {
+                        error!(
+                            "Received message with invalid header: {}   | Discarding.",
+                            header.to_string()
                         );
-                        let _ = state_sender.send(state);
                     }
                 }
             } else if msg.is_close() {

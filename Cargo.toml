@@ -7,10 +7,24 @@ edition = "2021"
 
 [dependencies]
 log = "0.4.17"
-bevy = "0.10"
+bevy = { version = "0.10", features = ["dynamic_linking"] }
 futures-util = { version = "0.3.17", default-features = false, features = ["async-await", "sink", "std"] }
 tokio = { version = "1.11.0", default-features = false, features = ["io-util", "macros",  "time", "sync", "net", "rt-multi-thread", "io-std"] }
 quick-protobuf = {git="https://github.com/Descrout/quick-protobuf"}
 tokio-tungstenite = "0.18.0"
 futures-channel = "0.3.26"
 url = "2.3.1"
+
+# Do little optimization on code in this project, as recompiling it takes very long.
+# When building for production, optimization is done.
+[profile.dev]
+opt-level = 1
+
+# Do a lot of optimization on packages, even in dev mode. Packages do not need to be
+# recompiled, so optimization is worth it.
+[profile.dev.package."*"]
+opt-level = 3
+
+#[target.x86_64-unknown-linux-gnu]
+#linker = "clang"
+#rustflags = ["-C", "link-arg=-fuse-ld=/usr/bin/lld"]
