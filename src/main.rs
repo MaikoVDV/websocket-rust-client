@@ -4,12 +4,13 @@ mod gameplay; // Several modules that control everything to do with the game
 mod networking;
 
 // Importing from local modules
-use proto::proto_all::*;
+use gameplay::*; // Exposing sub-modules
 use networking:: {
     broadcast_gameinput::broadcast_game_input, // Creates thread that checks for new GameInputs (with a tokio watch channel) and then sends that to the server
     connection::init_websocket_connection, // Opens & manages the websocket
     receive_state::get_game_state, // Creates thread that listens for state changes over the websocket // Creates thread that broadcasts new GameInputs to the server via the websocket
 };
+use proto::proto_all;
 
 // Bevy imports
 use bevy::{
@@ -31,7 +32,7 @@ use quick_protobuf::Writer;
 use futures_util::{SinkExt, StreamExt};
 
 // Standard Library imports
-use std::time;
+use std::{collections::HashMap, time};
 
 const PORT: &str = "8080";
 //const TIMESTEP: f32 = 1.0 / 60.0; // 60tps server
@@ -45,14 +46,14 @@ async fn main() {
     // Creating a thread to handle sending GameInputs to the server.
     // Also, creating an mpsc channel to send the inputs from the Bevy app to the thread.
     println!("Creating channel for gameinput communication between threads.");
-    let (input_sender, input_receiver) = watch::channel::<ClientInput>(ClientInput::default());
+    let (input_sender, input_receiver) = watch::channel::<proto_all::ClientInput>(proto_all::ClientInput::default());
     tokio::spawn(broadcast_game_input(input_receiver, ws_sender));
 
     // Creating a thread to handle receiving new gamestates from the server.
     // Also, creating an mpsc channel to send the state from the thread to the main thread, and to
     // the Bevy app.
     println!("Creating channel for state communication between threads.");
-    let (state_sender, state_receiver) = mpsc::unbounded_channel::<GameState>();
+    let (state_sender, state_receiver) = mpsc::unbounded_channel::<proto_all::GameState>();
     tokio::spawn(get_game_state(state_sender, ws_receiver));
 
     // Setup native Graphics API for each platform.
@@ -106,7 +107,7 @@ fn handle_input(
             "Channel closed: {}",
             tokio_channels.client_input_sender.is_closed()
         );
-        let input = ClientInput {
+        let input = proto_all::ClientInput {
             x: 0.0,
             y: 0.0,
             pressed: true,
@@ -120,7 +121,7 @@ fn handle_input(
         };
     }
     for cursor_event in cursor_evr.iter() {
-        let input = ClientInput {
+        let input = proto_all::ClientInput {
             x: cursor_event.position.x,
             y: cursor_event.position.y,
             pressed: true,
@@ -137,7 +138,7 @@ fn handle_input(
 
 #[derive(Resource, Debug)]
 pub struct TokioChannels {
-    pub client_input_sender: watch::Sender<ClientInput>,
+    pub client_input_sender: watch::Sender<proto_all::ClientInput>,
     pub game_state_receiver: mpsc::UnboundedReceiver<proto::proto_all::GameState>,
 }
 //#[derive(Resource, Debug)]

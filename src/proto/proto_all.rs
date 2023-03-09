@@ -196,7 +196,7 @@ impl MessageWrite for ClientInput {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Debug, Default, PartialEq, Clone)]
 pub struct ClientJoined {
-    pub id: u32,
+    pub client_id: u32,
 }
 
 impl<'a> MessageRead<'a> for ClientJoined {
@@ -204,7 +204,7 @@ impl<'a> MessageRead<'a> for ClientJoined {
         let mut msg = Self::default();
         while !r.is_eof() {
             match r.next_tag(bytes) {
-                Ok(8) => msg.id = r.read_uint32(bytes)?,
+                Ok(8) => msg.client_id = r.read_uint32(bytes)?,
                 Ok(t) => { r.read_unknown(bytes, t)?; }
                 Err(e) => return Err(e),
             }
@@ -216,11 +216,47 @@ impl<'a> MessageRead<'a> for ClientJoined {
 impl MessageWrite for ClientJoined {
     fn get_size(&self) -> usize {
         0
-        + if self.id == 0u32 { 0 } else { 1 + sizeof_varint(*(&self.id) as u64) }
+        + if self.client_id == 0u32 { 0 } else { 1 + sizeof_varint(*(&self.client_id) as u64) }
     }
 
     fn write_message<W: WriterBackend>(&self, w: &mut Writer<W>) -> Result<()> {
-        if self.id != 0u32 { w.write_with_tag(8, |w| w.write_uint32(*&self.id))?; }
+        if self.client_id != 0u32 { w.write_with_tag(8, |w| w.write_uint32(*&self.client_id))?; }
+        Ok(())
+    }
+}
+
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Debug, Default, PartialEq, Clone)]
+pub struct GameStateUpdate {
+    pub entities: Vec<Entity>,
+    pub bodies: Vec<Body>,
+}
+
+impl<'a> MessageRead<'a> for GameStateUpdate {
+    fn from_reader(r: &mut BytesReader, bytes: &'a [u8]) -> Result<Self> {
+        let mut msg = Self::default();
+        while !r.is_eof() {
+            match r.next_tag(bytes) {
+                Ok(10) => msg.entities.push(r.read_message::<Entity>(bytes)?),
+                Ok(18) => msg.bodies.push(r.read_message::<Body>(bytes)?),
+                Ok(t) => { r.read_unknown(bytes, t)?; }
+                Err(e) => return Err(e),
+            }
+        }
+        Ok(msg)
+    }
+}
+
+impl MessageWrite for GameStateUpdate {
+    fn get_size(&self) -> usize {
+        0
+        + self.entities.iter().map(|s| 1 + sizeof_len((s).get_size())).sum::<usize>()
+        + self.bodies.iter().map(|s| 1 + sizeof_len((s).get_size())).sum::<usize>()
+    }
+
+    fn write_message<W: WriterBackend>(&self, w: &mut Writer<W>) -> Result<()> {
+        for s in &self.entities { w.write_with_tag(10, |w| w.write_message(s))?; }
+        for s in &self.bodies { w.write_with_tag(18, |w| w.write_message(s))?; }
         Ok(())
     }
 }
