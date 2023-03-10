@@ -10,6 +10,7 @@ use quick_protobuf::{BytesReader, MessageRead};
 // Listens for changes in GameInput, and then transmits them via the websocket.
 pub async fn get_game_state(
     state_sender: mpsc::UnboundedSender<proto_all::GameState>,
+    state_update_sender: mpsc::UnboundedSender<proto_all::GameStateUpdate>,
     mut ws_stream: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
 ) {
     println!("Websocket listener thread created. Entering loop.");
@@ -28,7 +29,6 @@ pub async fn get_game_state(
                 match header {
                     0 => {
                         if let Ok(state) = proto_all::GameState::from_reader(&mut reader, &msg) {
-                            _amount += 1;
                             println!(
                                 "Received state: \nAmount of entities: {},\nAmount of bodies: {},\nAmount of states received: {}",
                                 state.entities.len(),
@@ -43,7 +43,9 @@ pub async fn get_game_state(
                                  This is probably a bug in the server.");
                     }
                     2 => {
-                        if let Ok(client_join) = proto_all::ClientJoined::from_reader(&mut reader, &msg) {
+                        if let Ok(client_join) =
+                            proto_all::ClientJoined::from_reader(&mut reader, &msg)
+                        {
                             println!(
                                 "Received Message::ClientJoin. The client's id is {}",
                                 client_join.client_id.to_string()
@@ -51,14 +53,27 @@ pub async fn get_game_state(
                         }
                     }
                     3 => {
-                        //println!("GameStateUpdate received!");
-                        if let Ok(state_update) = proto_all::GameStateUpdate::from_reader(&mut reader, &msg) {
+                        if let Ok(state_update) =
+                            proto_all::GameStateUpdate::from_reader(&mut reader, &msg)
+                        {
+                            _amount += 1;
+                            //println!(
+                            //    "Received state update: \nAmount of entities: {},\nAmount of bodies: {}",
+                            //    state_update.entities.len(),
+                            //    state_update.bodies.len(),
+                            //);
+                            if state_update.entities.len() <= 0 {
+                                continue;
+                            }
+                            let first_entity = state_update.entities.get(0).unwrap();
                             println!(
-                                "Received state: \nAmount of entities: {},\nAmount of bodies: {}",
-                                state_update.entities.len(),
-                                state_update.bodies.len(),
+                                "Received state update. Information on 1st entity:\nid: {}\nx: {}\ny: {}\npressed: {}",
+                                first_entity.id,
+                                first_entity.x,
+                                first_entity.y,
+                                first_entity.pressed,
                             );
-                            //let _ = state_sender.send(state_update);
+                            let _ = state_update_sender.send(state_update);
                         }
                     }
                     _ => {

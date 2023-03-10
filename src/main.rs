@@ -1,13 +1,13 @@
 // Importing local modules
-mod proto; // Converts data stored in memory to messages to be sent via websocket
 mod gameplay; // Several modules that control everything to do with the game
 mod networking;
+mod proto; // Converts data stored in memory to messages to be sent via websocket
 
 // Importing from local modules
 use gameplay::*; // Exposing sub-modules
-use networking:: {
+use networking::{
     broadcast_gameinput::broadcast_game_input, // Creates thread that checks for new GameInputs (with a tokio watch channel) and then sends that to the server
-    connection::init_websocket_connection, // Opens & manages the websocket
+    connection::init_websocket_connection,     // Opens & manages the websocket
     receive_state::get_game_state, // Creates thread that listens for state changes over the websocket // Creates thread that broadcasts new GameInputs to the server via the websocket
 };
 use proto::proto_all;
@@ -46,7 +46,8 @@ async fn main() {
     // Creating a thread to handle sending GameInputs to the server.
     // Also, creating an mpsc channel to send the inputs from the Bevy app to the thread.
     println!("Creating channel for gameinput communication between threads.");
-    let (input_sender, input_receiver) = watch::channel::<proto_all::ClientInput>(proto_all::ClientInput::default());
+    let (input_sender, input_receiver) =
+        watch::channel::<proto_all::ClientInput>(proto_all::ClientInput::default());
     tokio::spawn(broadcast_game_input(input_receiver, ws_sender));
 
     // Creating a thread to handle receiving new gamestates from the server.
@@ -54,7 +55,13 @@ async fn main() {
     // the Bevy app.
     println!("Creating channel for state communication between threads.");
     let (state_sender, state_receiver) = mpsc::unbounded_channel::<proto_all::GameState>();
-    tokio::spawn(get_game_state(state_sender, ws_receiver));
+    let (state_update_sender, state_update_receiver) =
+        mpsc::unbounded_channel::<proto_all::GameStateUpdate>();
+    tokio::spawn(get_game_state(
+        state_sender,
+        state_update_sender,
+        ws_receiver,
+    ));
 
     // Setup native Graphics API for each platform.
     let platform_api = if cfg!(target_os = "windows") {
@@ -91,6 +98,7 @@ async fn main() {
         .insert_resource(TokioChannels {
             client_input_sender: input_sender,
             game_state_receiver: state_receiver,
+            game_state_update_receiver: state_update_receiver,
         })
         .add_system(handle_input)
         .run();
@@ -140,6 +148,7 @@ fn handle_input(
 pub struct TokioChannels {
     pub client_input_sender: watch::Sender<proto_all::ClientInput>,
     pub game_state_receiver: mpsc::UnboundedReceiver<proto::proto_all::GameState>,
+    pub game_state_update_receiver: mpsc::UnboundedReceiver<proto_all::GameStateUpdate>,
 }
 //#[derive(Resource, Debug)]
 //pub struct GameInputSenderResource {
