@@ -30,7 +30,7 @@ pub async fn get_game_state(
                     0 => {
                         if let Ok(state) = proto_all::GameState::from_reader(&mut reader, &msg) {
                             println!(
-                                "Received state: \nAmount of entities: {},\nAmount of bodies: {},\nAmount of states received: {}",
+                                "Received full state: \nAmount of entities: {},\nAmount of bodies: {},\nAmount of states received: {}",
                                 state.entities.len(),
                                 state.bodies.len(),
                                 _amount.to_string()

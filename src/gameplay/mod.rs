@@ -1,2 +1,3 @@
 pub mod game_world;
-pub mod manage_game_objects;
+pub mod update_internal_state;
+

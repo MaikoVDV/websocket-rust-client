@@ -100,6 +100,7 @@ async fn main() {
             game_state_receiver: state_receiver,
             game_state_update_receiver: state_update_receiver,
         })
+        .insert_resource(game_world::GameWorld::new())
         .add_system(handle_input)
         .run();
 }
