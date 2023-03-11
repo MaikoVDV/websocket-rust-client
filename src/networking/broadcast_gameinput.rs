@@ -1,8 +1,5 @@
 use crate::*;
 
-use tokio::net::TcpStream;
-use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
-
 use futures_util::stream::SplitSink;
 
 // Runs on a separate thread.

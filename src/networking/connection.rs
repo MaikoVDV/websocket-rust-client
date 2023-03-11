@@ -1,8 +1,5 @@
 use crate::*;
 
-use tokio::net::TcpStream;
-use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
-
 #[derive(Resource, Debug)]
 pub struct WebsocketStream {
     pub stream: WebSocketStream<MaybeTlsStream<TcpStream>>,
