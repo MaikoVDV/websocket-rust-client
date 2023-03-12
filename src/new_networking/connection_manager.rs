@@ -64,4 +64,25 @@ impl WebsocketClient {
                 .send(ConnectionEvent::Disconnected);
         }
     }
+    /// Send a message to the connected server, returns `Err(NetworkError::NotConnected)` if
+    /// the connection hasn't been established yet
+    pub fn send_message<T: quick_protobuf::MessageWrite> (&self, message_data: T, header: u8) -> Result<(), NetworkError> {
+        println!("Sending message to server");
+        let server_connection = match self.server_connection.as_ref() {
+            Some(server) => server,
+            None => return Err(NetworkError::NotConnected),
+        };
+        println!("Serializing package to send to {}", server_connection.address.to_string());
+        let packet = proto_serialize(message_data, header);
+
+        match server_connection.message_sender.send(packet) {
+            Ok(_) => (),
+            Err(err) => {
+                error!("Server disconnected: {}", err);
+                return Err(NetworkError::NotConnected);
+            }
+        }
+
+        Ok(())
+    }
 }

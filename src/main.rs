@@ -22,7 +22,9 @@ use new_networking::{
     network_plugin::{AppNetworkClientMessage, NetworkMessage, SyncChannel},
     listen::listen,
     network_messages,
-    //broadcast::broadcast,
+    serialization::proto_serialize,
+    net_errors::NetworkError,
+    broadcast::broadcast,
 };
 use proto::proto_all;
 
@@ -65,9 +67,11 @@ use std::{
     net::{SocketAddr, IpAddr, Ipv4Addr},
     sync::{Arc/* , Mutex*/},
 };
+// For easily deriving the Error trait.
+use thiserror::Error;
 
 const PORT: u16 = 8080;
-//const TIMESTEP: f32 = 1.0 / 60.0; // 60tps server
+const FIXED_TIMESTEP: f32 = 1.0 / 20.0;
 
 #[tokio::main]
 async fn main() {
@@ -127,8 +131,19 @@ async fn main() {
                 },
             }),
     );
+    // Resources
+    bevy_app.insert_resource(game_world::GameWorld::new());
+    bevy_app.insert_resource(FixedTime::new_from_secs(FIXED_TIMESTEP));
+
+    // Networking
     bevy_app.add_plugin(network_plugin::ClientPlugin); // Handles all networking through the websocket.
+    bevy_app.add_system(network_plugin::create_new_connection);
+    bevy_app.add_system(listen_for_state_changes);
     bevy_app.listen_for_network_message::<network_messages::GameStateUpdateMessage>();
+
+    // Input handling
+    bevy_app.add_system(handle_input.in_schedule(CoreSchedule::FixedUpdate));
+
     // bevy_app.insert_resource(TokioChannels {
     //     client_input_sender: input_sender,
 
@@ -139,11 +154,7 @@ async fn main() {
     //     game_state_update_receiver: state_update_receiver,
 
     // });
-    bevy_app.insert_resource(game_world::GameWorld::new());
-    bevy_app.add_system(network_plugin::create_new_connection);
     //bevy_app..add_startup_system(connection_manager::connect_to_websocket);
-    //bevy_app.add_system(handle_input);
-    bevy_app.add_system(listen_for_state_changes);
 
 
     bevy_app.run();
@@ -153,26 +164,27 @@ async fn main() {
 fn handle_input(
     keys: Res<Input<KeyCode>>,
     mut cursor_evr: EventReader<CursorMoved>,
-    tokio_channels: Res<TokioChannels>,
+    ws_client: Res<WebsocketClient>,
 ) {
     if keys.just_pressed(KeyCode::Space) {
         println!("<Space> was pressed");
-        println!(
-            "Channel closed: {}",
-            tokio_channels.client_input_sender.is_closed()
-        );
         let input = proto_all::ClientInput {
             x: 0.0,
             y: 0.0,
             pressed: true,
         };
-        match tokio_channels.client_input_sender.send(input) {
-            Ok(()) => (),
-            Err(err) => eprintln!(
-                "Error: Transmitting keyboardinput through channel failed: {}",
-                err
-            ),
+        match ws_client.send_message(input, 1) {
+            Ok(_) => (),
+            Err(NetworkError::NotConnected) => eprintln!("Failed to send message to server because there is no server."),
+            Err(unknown_err) => eprintln!("Failed to send message for an unknown reason: {}", unknown_err)
         };
+        // match ws_client.send_message(input, 1) {
+        //     Ok(()) => (),
+        //     Err(err) => eprintln!(
+        //         "Error: Transmitting keyboardinput through channel failed: {}",
+        //         err
+        //     ),
+        // };
     }
     for cursor_event in cursor_evr.iter() {
         let input = proto_all::ClientInput {
@@ -180,13 +192,18 @@ fn handle_input(
             y: cursor_event.position.y,
             pressed: true,
         };
-        match tokio_channels.client_input_sender.send(input) {
-            Ok(()) => (),
-            Err(err) => eprintln!(
-                "Error: Transmitting mouse input through channel failed: {}",
-                err
-            ),
+        match ws_client.send_message(input, 1) {
+            Ok(_) => (),
+            Err(NetworkError::NotConnected) => eprintln!("Failed to send message to server because there is no server."),
+            Err(unknown_err) => eprintln!("Failed to send message for an unknown reason: {}", unknown_err)
         };
+        // match tokio_channels.client_input_sender.send(input) {
+        //     Ok(()) => (),
+        //     Err(err) => eprintln!(
+        //         "Error: Transmitting mouse input through channel failed: {}",
+        //         err
+        //     ),
+        // };
     }
 }
 

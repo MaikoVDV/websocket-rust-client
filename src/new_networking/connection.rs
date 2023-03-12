@@ -40,8 +40,10 @@ pub fn handle_connection_event(
         }),
 
         broadcast_task: ws_client.runtime.spawn(async move {
-            let mut recv_message = recv_message;
-            let mut send_socket = send_socket;
+            println!("Broadcasting thread has been created.");
+            let mut send_socket = send_socket; // Actual websocket that messages are sent to
+            let mut recv_message = recv_message; // mpsc channel with messages queued up for sending.
+            broadcast(send_socket, recv_message).await;
         }),
     })
 }

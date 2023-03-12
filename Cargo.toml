@@ -16,6 +16,7 @@ futures-channel = "0.3.26"
 url = "2.3.1"
 crossbeam-channel = "0.5.7"
 dashmap = "5.4.0" # Concurrent HashMaps. Makes storing messages and mutating them over multiple threads possible.
+thiserror = "1.0.39"
 
 [build-dependencies]
 pb-rs = "0.10.0" # Compiles .proto files to a rust module. ProtoBuffers are used to convert structs to binary messages that are sent over the websocket.

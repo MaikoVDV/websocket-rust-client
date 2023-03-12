@@ -1,18 +1,19 @@
 use crate::*;
 
-impl WebsocketClient {
-    pub fn broadcast(tokio_channels: ResMut<TokioChannels>) {
-        // let pool = IoTaskPool::get();
-        // let cc = comm_channels.tx.clone();
-        // let task = pool.spawn(async move {
-        //     let api_response_text = reqwest::get("http://localhost:8081/test")
-        //         .await
-        //         .unwrap()
-        //         .text()
-        //         .await
-        //         .unwrap();
-        //     cc.try_send(api_response_text);
-        // });
-        let task_pool = IoTaskPool::get();
+pub async fn broadcast(
+    mut ws_sender: SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>,
+    mut msg_receiver: mpsc::UnboundedReceiver<Vec<u8>>,
+) {
+    loop {
+        let msg = match msg_receiver.try_recv() {
+            Ok(msg) => msg,
+            Err(mpsc::error::TryRecvError::Empty) => continue, // No new messages.
+            Err(e) => {
+                info!("Failed to check if input changed. Error message: {}", e);
+                continue;
+            }
+        };
+        // Messages have already 
+        ws_sender.send(Message::binary(msg)).await.unwrap();
     }
 }
