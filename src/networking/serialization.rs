@@ -13,4 +13,3 @@ pub fn proto_serialize<T: quick_protobuf::MessageWrite>(data: T, message_header:
 
     return out;
 }
-

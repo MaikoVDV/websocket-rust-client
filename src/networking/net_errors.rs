@@ -1,5 +1,6 @@
 use crate::*;
 
+#[allow(dead_code)]
 #[derive(thiserror::Error, Debug)]
 pub enum NetworkError {
     #[error("An error occured when accepting a new connnection: {0}")]

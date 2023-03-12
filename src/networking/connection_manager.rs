@@ -1,10 +1,5 @@
 use crate::*;
 
-#[derive(Resource, Debug)]
-pub struct WebsocketStream {
-    pub stream: WebSocketStream<MaybeTlsStream<TcpStream>>,
-}
-
 #[derive(Resource)]
 pub struct WebsocketClient {
     //pub ws_stream: WebSocketStream<MaybeTlsStream<TcpStream>>,
@@ -34,6 +29,7 @@ impl WebsocketClient {
     pub fn connect(&mut self, addr: SocketAddr) {
         println!("Attemting to create websocket connection.");
         self.disconnect();
+        let connection_events = self.connection_events.sender.clone();
         let created_new_connection_events = self.created_new_connection_events.sender.clone();
 
         self.runtime.spawn(async move {
@@ -46,9 +42,11 @@ impl WebsocketClient {
             // Trying to send the websocket & the address to the WebsocketClient struct for storage.
             match created_new_connection_events.send((ws_stream, addr)) {
                 Ok(_) => {
+                    connection_events.send(ConnectionEvent::Connected).unwrap();
                     println!("Successfully connected to websocket at address {}", addr.to_string());
                 },
                 Err(err) => {
+                    connection_events.send(ConnectionEvent::Error).unwrap();
                     println!("Could not initiate connection: {}", err);
                 }
             }
@@ -67,18 +65,16 @@ impl WebsocketClient {
     /// Send a message to the connected server, returns `Err(NetworkError::NotConnected)` if
     /// the connection hasn't been established yet
     pub fn send_message<T: quick_protobuf::MessageWrite> (&self, message_data: T, header: u8) -> Result<(), NetworkError> {
-        println!("Sending message to server");
         let server_connection = match self.server_connection.as_ref() {
             Some(server) => server,
             None => return Err(NetworkError::NotConnected),
         };
-        println!("Serializing package to send to {}", server_connection.address.to_string());
+        //println!("Serializing package to send to {}", server_connection.address.to_string());
         let packet = proto_serialize(message_data, header);
 
         match server_connection.message_sender.send(packet) {
             Ok(_) => (),
-            Err(err) => {
-                error!("Server disconnected: {}", err);
+            Err(_) => {
                 return Err(NetworkError::NotConnected);
             }
         }

@@ -1,6 +1,6 @@
 use crate::*;
 
-use new_networking::listen::send_event_for_message;
+use networking::listen::send_event_for_message;
 
 #[derive(Default, Copy, Clone, Debug)]
 /// The plugin to add to your bevy [`AppBuilder`](bevy::prelude::AppBuilder) when you want
@@ -30,9 +30,9 @@ impl Plugin for ClientPlugin {
 
 pub fn create_new_connection(
     mut ws_client: ResMut<WebsocketClient>,
-    mouse_buttons: Res<Input<MouseButton>>,
+    keys: Res<Input<KeyCode>>,
 ) {
-    if mouse_buttons.just_pressed(MouseButton::Left) {
+    if keys.just_pressed(KeyCode::R) {
         //let socket_address = format!("ws://127.0.0.1:{}", PORT);
         let socket_address = SocketAddr::new("127.0.0.1".parse().unwrap(), PORT);
         ws_client.connect(socket_address);

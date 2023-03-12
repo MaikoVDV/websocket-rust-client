@@ -155,15 +155,14 @@ pub async fn listen(
                                 if state_update.entities.len() <= 0 {
                                     continue;
                                 }
-                                let first_entity = state_update.entities.get(0).unwrap();
+                                let _first_entity = state_update.entities.get(0).unwrap();
                                 // println!(
                                 //     "Received state update. Information on 1st entity:\nid: {}\nx: {}\ny: {}\npressed: {}",
-                                //     first_entity.id,
-                                //     first_entity.x,
-                                //     first_entity.y,
-                                //     first_entity.pressed,
+                                //     _first_entity.id,
+                                //     _first_entity.x,
+                                //     _first_entity.y,
+                                //     _first_entity.pressed,
                                 // );
-                                //state_updates.insert(header, Box::new(msg));
                                 match state_updates.get_mut(&header) {
                                     Some(mut updates) => updates.push(Box::new(msg)),
                                     None => {
@@ -203,7 +202,6 @@ pub fn send_event_for_message<T: network_plugin::NetworkMessage>(
         Some(messages) => messages,
         None => return,
     };
-    //println!("Amount of messages received: {}", messages.len());
 
     events.send_batch(
         messages

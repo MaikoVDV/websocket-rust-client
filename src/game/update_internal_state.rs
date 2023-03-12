@@ -17,12 +17,11 @@ pub fn listen_for_state_changes(mut game_world: ResMut<game_world::GameWorld>, m
     // };
     // println!("Got some state changes while listenting to a channel:\nAmount of players: {}\nAmount of bodies: {}", new_state.entities.len(), new_state.bodies.len());
 }
-pub fn add_entities(
-    mut game_world: ResMut<game_world::GameWorld>,
-    entities: Vec<proto_all::Entity>,
-) {
-    for entity in entities.iter() {
-        game_world.players.insert(entity.id, entity.to_owned());
-    }
-}
-
+// pub fn add_entities(
+//     mut game_world: ResMut<game_world::GameWorld>,
+//     entities: Vec<proto_all::Entity>,
+// ) {
+//     for entity in entities.iter() {
+//         game_world.players.insert(entity.id, entity.to_owned());
+//     }
+// }
