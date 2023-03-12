@@ -119,8 +119,8 @@ pub async fn listen(
                         0 => {
                             if let Ok(state) = proto_all::GameState::from_reader(&mut reader, &msg) {
                                 println!(
-                                    "Received full state: \nAmount of entities: {},\nAmount of bodies: {},\nAmount of states received: {}",
-                                    state.entities.len(),
+                                    "Received full state: \nAmount of players: {},\nAmount of bodies: {},\nAmount of states received: {}",
+                                    state.players.len(),
                                     state.bodies.len(),
                                     _amount.to_string()
                                 );
@@ -147,21 +147,21 @@ pub async fn listen(
                             {
                                 _amount += 1;
                                 // println!(
-                                //    "Received state update: \nAmount of entities: {},\nAmount of bodies: {}",
-                                //    state_update.entities.len(),
+                                //    "Received state update: \nAmount of players: {},\nAmount of bodies: {}",
+                                //    state_update.players.len(),
                                 //    state_update.bodies.len(),
                                 // );
                                 //println!("Received and deserialized GameStateUpdate");
-                                if state_update.entities.len() <= 0 {
+                                if state_update.players.len() <= 0 {
                                     continue;
                                 }
-                                let _first_entity = state_update.entities.get(0).unwrap();
+                                let _first_player = state_update.players.get(0).unwrap();
                                 // println!(
-                                //     "Received state update. Information on 1st entity:\nid: {}\nx: {}\ny: {}\npressed: {}",
-                                //     _first_entity.id,
-                                //     _first_entity.x,
-                                //     _first_entity.y,
-                                //     _first_entity.pressed,
+                                //     "Received state update. Information on 1st player:\nid: {}\nx: {}\ny: {}\npressed: {}",
+                                //     _first_player.id,
+                                //     _first_player.x,
+                                //     _first_player.y,
+                                //     _first_player.pressed,
                                 // );
                                 match state_updates.get_mut(&header) {
                                     Some(mut updates) => updates.push(Box::new(msg)),

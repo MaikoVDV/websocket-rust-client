@@ -16,9 +16,9 @@ pub async fn broadcast(
             match msg_receiver.try_recv() {
                 Ok(msg) => oldest_msg = msg,
                 Err(mpsc::error::TryRecvError::Empty) => break, // No new messages.
-                Err(e) => {
-                    info!("Failed to check if input changed. Error message: {}", e);
-                    continue;
+                Err(mpsc::error::TryRecvError::Disconnected) => {
+                    eprintln!("The message channel used in broadcast() has closed. This is probably because the broadcast task was aborted in ServerConnection::stop().");
+                    return;
                 }
             };
         };
