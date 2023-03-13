@@ -4,6 +4,7 @@ use crate::*;
 // Struct is constructed by WebsocketConnection in connect().
 #[derive(Debug)]
 pub struct ServerConnection {
+    pub client_id: Option<u32>,
     pub address: SocketAddr, // The address of the server currently connected to
     pub listen_task: JoinHandle<()>, // Tokio future that for messages sent by the server
     pub broadcast_task: JoinHandle<()>, // Tokio future that sends data to the server (like GameInputs, Pings, etc.)
@@ -33,6 +34,7 @@ pub fn handle_connection_event(mut ws_client: ResMut<WebsocketClient>) {
     let (send_impulse_message, recv_impulse_message) = mpsc::unbounded_channel::<Vec<u8>>();
 
     ws_client.server_connection = Some(ServerConnection {
+        client_id: None, // Assigned when an InitialState message is received.
         address: server_address,
         constant_message_sender: send_constant_message,
         impulse_message_sender: send_impulse_message,
@@ -58,5 +60,7 @@ impl ServerConnection {
         self.listen_task.abort();
         self.broadcast_task.abort();
     }
+    pub fn add_client_id(&mut self, new_client_id: u32) {
+        self.client_id = Some(new_client_id);
+    }
 }
-

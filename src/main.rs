@@ -6,23 +6,21 @@ mod utils;
 
 // Importing from local modules
 use game::{
-    game_world,
-    update_internal_state::listen_for_state_changes,
-    handle_input,
     components,
     components::generic::*,
+    game_world, handle_input,
+    update_internal_state::{listen_for_initial_state, listen_for_state_updates},
 };
 use networking::{
-    connection_manager::WebsocketClient,
+    broadcast::broadcast,
     connection::*,
     connection_events::*,
-    network_plugin,
-    network_plugin::{AppNetworkClientMessage, NetworkMessage, SyncChannel},
+    connection_manager::WebsocketClient,
     listen::listen,
-    network_messages,
-    serialization::proto_serialize,
     net_errors::NetworkError,
-    broadcast::broadcast,
+    network_messages, network_plugin,
+    network_plugin::{AppNetworkClientMessage, NetworkMessage, SyncChannel},
+    serialization::proto_serialize,
 };
 use proto::proto_all;
 use utils::*;
@@ -37,33 +35,28 @@ use bevy::{
 };
 
 // Networking & Multithreading (tokio)
-use tokio::{
-    sync::mpsc,
-    net::TcpStream,
-    task::JoinHandle,
-    runtime,
-};
 use dashmap::DashMap;
+use tokio::{net::TcpStream, runtime, sync::mpsc, task::JoinHandle};
 
 use tokio_tungstenite::{
-    connect_async,
-    tungstenite::protocol::Message,
-    MaybeTlsStream,
-    WebSocketStream,
+    connect_async, tungstenite::protocol::Message, MaybeTlsStream, WebSocketStream,
 };
 
+use crossbeam_channel::{Receiver as Crossbeam_Receiver, Sender as Crossbeam_Sender};
 use quick_protobuf::{BytesReader, MessageRead, Writer};
-use crossbeam_channel::{Sender as Crossbeam_Sender, Receiver as Crossbeam_Receiver};
 
 // Futures
-use futures_util::{SinkExt, StreamExt, stream::{SplitSink, SplitStream}};
+use futures_util::{
+    stream::{SplitSink, SplitStream},
+    SinkExt, StreamExt,
+};
 
 // Standard Library imports
 use std::{
     collections::HashMap,
-    net::{SocketAddr, IpAddr, Ipv4Addr},
-    sync::{Arc/* , Mutex*/},
     fmt,
+    net::{IpAddr, Ipv4Addr, SocketAddr},
+    sync::Arc,
 };
 // For easily deriving the Error trait.
 use thiserror;
@@ -73,8 +66,6 @@ const FIXED_TIMESTEP: f32 = 1.0 / 20.0;
 
 #[tokio::main]
 async fn main() {
-    
-
     // Creating the Bevy app.
     let mut bevy_app = App::new();
     bevy_app.add_plugins(
@@ -102,13 +93,13 @@ async fn main() {
     bevy_app.add_plugin(network_plugin::ClientPlugin); // Handles all networking through the websocket.
     bevy_app.add_system(network_plugin::create_new_connection);
     bevy_app.listen_for_network_message::<network_messages::GameStateUpdateMessage>();
+    bevy_app.listen_for_network_message::<network_messages::InitialStateMessage>();
 
     // State management
-    bevy_app.add_system(listen_for_state_changes);
+    bevy_app.add_system(listen_for_state_updates);
+    bevy_app.add_system(listen_for_initial_state);
 
     // Input handling
-    // bevy_app.add_system(handle_input::handle_keyboard.in_schedule(CoreSchedule::FixedUpdate));
-    // bevy_app.add_system(handle_input::handle_mouse.in_schedule(CoreSchedule::FixedUpdate));
     bevy_app.add_system(handle_input::handle_keyboard);
     bevy_app.add_system(handle_input::handle_mouse);
 

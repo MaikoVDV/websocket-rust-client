@@ -2,9 +2,6 @@ use crate::*;
 
 #[derive(Resource)]
 pub struct WebsocketClient {
-    //pub ws_stream: WebSocketStream<MaybeTlsStream<TcpStream>>,
-    // pub sender: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
-    // pub receiver: Arc<Mutex<SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>>>,
     pub runtime: runtime::Runtime,
     pub state_updates: Arc<DashMap<u8, Vec<Box<Vec<u8>>>>>,
     pub server_connection: Option<ServerConnection>,
@@ -100,4 +97,3 @@ impl WebsocketClient {
         Ok(())
     }
 }
-
