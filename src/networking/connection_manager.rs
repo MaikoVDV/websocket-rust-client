@@ -9,8 +9,9 @@ pub struct WebsocketClient {
     pub state_updates: Arc<DashMap<u8, Vec<Box<Vec<u8>>>>>,
     pub server_connection: Option<ServerConnection>,
     pub connection_events: network_plugin::SyncChannel<ConnectionEvent>, // Connected, Disconnected, Error.
-    pub created_new_connection_events: network_plugin::SyncChannel<(WebSocketStream<MaybeTlsStream<TcpStream>>, SocketAddr)>, // Channel can send websocket and a string holding the current address its connected to.
-    //pub received_messages_hashmap: Arc<HashMap<>>,
+    pub created_new_connection_events:
+        network_plugin::SyncChannel<(WebSocketStream<MaybeTlsStream<TcpStream>>, SocketAddr)>, // Channel can send websocket and a string holding the current address its connected to.
+                                                                                               //pub received_messages_hashmap: Arc<HashMap<>>,
 }
 impl WebsocketClient {
     pub fn new() -> Self {
@@ -43,8 +44,11 @@ impl WebsocketClient {
             match created_new_connection_events.send((ws_stream, addr)) {
                 Ok(_) => {
                     connection_events.send(ConnectionEvent::Connected).unwrap();
-                    println!("Successfully connected to websocket at address {}", addr.to_string());
-                },
+                    println!(
+                        "Successfully connected to websocket at address {}",
+                        addr.to_string()
+                    );
+                }
                 Err(err) => {
                     connection_events.send(ConnectionEvent::Error).unwrap();
                     println!("Could not initiate connection: {}", err);
@@ -64,21 +68,36 @@ impl WebsocketClient {
     }
     /// Send a message to the connected server, returns `Err(NetworkError::NotConnected)` if
     /// the connection hasn't been established yet
-    pub fn send_message<T: quick_protobuf::MessageWrite> (&self, message_data: T, header: u8) -> Result<(), NetworkError> {
+    pub fn send_message<T: quick_protobuf::MessageWrite>(
+        &self,
+        message_data: T,
+        header: u8,
+        send_as_impulse: bool,
+    ) -> Result<(), NetworkError> {
         let server_connection = match self.server_connection.as_ref() {
             Some(server) => server,
             None => return Err(NetworkError::NotConnected),
         };
-        //println!("Serializing package to send to {}", server_connection.address.to_string());
         let packet = proto_serialize(message_data, header);
 
-        match server_connection.message_sender.send(packet) {
-            Ok(_) => (),
-            Err(_) => {
-                return Err(NetworkError::NotConnected);
+        if send_as_impulse {
+            match server_connection.impulse_message_sender.send(packet) {
+                Ok(_) => (),
+                Err(_) => {
+                    return Err(NetworkError::NotConnected);
+                }
+            }
+        } else {
+            match server_connection.constant_message_sender.send(packet) {
+                Ok(_) => (),
+                Err(_) => {
+                    return Err(NetworkError::NotConnected);
+                }
             }
         }
+        //println!("Serializing package to send to {}", server_connection.address.to_string());
 
         Ok(())
     }
 }
+
