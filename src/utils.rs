@@ -14,3 +14,14 @@ pub fn get_platform_graphics_api() -> Backends {
     println!("Using {:?} as graphics api.", platform_api);
     return platform_api;
 }
+
+pub fn display_players(player_query: Query<&components::player::Player>, mut player_log_texts: Query<&mut Text, With<components::debug::PlayerLogText>>) {
+    for mut text in &mut player_log_texts {
+        let mut data_string = format!("Amount of players: {}\n", player_query.into_iter().len());
+        for player in &player_query {
+            data_string += format!("-------------\nid: {}\nx: {},   y: {}\npressed: {}\n",
+                player.server_id, player.position.x, player.position.y, player.pressed).as_str();
+        }
+        text.sections[0].value = data_string;
+    }
+}

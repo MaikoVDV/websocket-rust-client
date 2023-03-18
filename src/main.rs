@@ -85,6 +85,8 @@ async fn main() {
                 },
             }),
     );
+    bevy_app.add_startup_system(setup);
+
     // Resources
     bevy_app.insert_resource(game_world::GameWorld::new());
     bevy_app.insert_resource(FixedTime::new_from_secs(FIXED_TIMESTEP));
@@ -103,6 +105,36 @@ async fn main() {
     bevy_app.add_system(handle_input::handle_keyboard);
     bevy_app.add_system(handle_input::handle_mouse);
 
+    // Debugging
+    bevy_app.add_system(utils::display_players);
+
     // Running the app. This method call is blocking, and won't end until the window is closed.
     bevy_app.run();
+}
+
+pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+    commands.spawn(Camera2dBundle::default());
+
+    commands.spawn((
+        TextBundle::from_section(
+            "Player display",
+            TextStyle {
+                font_size: 13.0,
+                font: asset_server.load("fonts/PixelEmulator-xq08.ttf"),
+                color: Color::WHITE,
+            },
+        ) // Set the alignment of the Text
+        .with_text_alignment(TextAlignment::Left)
+        // Set the style of the TextBundle itself.
+        .with_style(Style {
+            position_type: PositionType::Absolute,
+            position: UiRect {
+                top: Val::Px(5.0),
+                left: Val::Px(5.0),
+                ..default()
+            },
+            ..default()
+        }),
+        components::debug::PlayerLogText,
+    ));
 }
