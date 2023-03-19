@@ -18,7 +18,7 @@ impl Player {
         }
     }
 
-    pub fn update_with_proto(&mut self, updated_data: proto_all::Player) {
+    pub fn update_with_proto(&mut self, updated_data: generic_protobufs::Player) {
         self.position.x = updated_data.x;
         self.position.y = updated_data.y;
         self.pressed = updated_data.pressed;

@@ -9,7 +9,7 @@ use game::{
     components,
     components::generic::*,
     game_world, handle_input,
-    update_internal_state::{listen_for_initial_state, listen_for_state_updates},
+    update_internal_state::listen_for_network_events,
 };
 use networking::{
     broadcast::broadcast,
@@ -22,7 +22,7 @@ use networking::{
     network_plugin::{AppNetworkClientMessage, NetworkMessage, SyncChannel},
     serialization::proto_serialize,
 };
-use proto::proto_all;
+use proto::*;
 use utils::*;
 
 // Bevy imports
@@ -98,8 +98,9 @@ async fn main() {
     bevy_app.listen_for_network_message::<network_messages::InitialStateMessage>();
 
     // State management
-    bevy_app.add_system(listen_for_state_updates);
-    bevy_app.add_system(listen_for_initial_state);
+    bevy_app.add_system(listen_for_network_events);
+    // bevy_app.add_system(listen_for_state_updates);
+    // bevy_app.add_system(listen_for_initial_state);
 
     // Input handling
     bevy_app.add_system(handle_input::handle_keyboard);

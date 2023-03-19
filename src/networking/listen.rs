@@ -5,7 +5,6 @@ pub async fn listen(
     state_updates: Arc<DashMap<u8, Vec<Box<Vec<u8>>>>>,
 ) {
     loop {
-        let mut _amount = 0;
         while let Some(received_data) = ws_receiver.next().await {
             //println!("Received something");
             if let Ok(msg) = received_data {
@@ -20,25 +19,9 @@ pub async fn listen(
                     let mut reader = BytesReader::from_bytes(&msg);
                     //println!("Received a binary message with header {}", header);
                     match header {
-                        0 => {
-                            if let Ok(state) = proto_all::GameState::from_reader(&mut reader, &msg)
-                            {
-                                println!(
-                                    "Received full state: \nAmount of players: {},\nAmount of bodies: {},\nAmount of states received: {}",
-                                    state.players.len(),
-                                    state.bodies.len(),
-                                    _amount.to_string()
-                                );
-                                //let _ = state_update_sender.send(state);
-                            }
-                        }
-                        1 => {
-                            println!("Received a message with header 1, which is meant for ClientInput messages. 
-                                    This is probably a bug in the server.");
-                        }
-                        2 => {
+                        0 => { // Client connected
                             if let Ok(client_join) =
-                                proto_all::ClientJoined::from_reader(&mut reader, &msg)
+                                conn_event_messages::ClientConnect::from_reader(&mut reader, &msg)
                             {
                                 println!(
                                     "Received Message::ClientJoin. The client's id is {}",
@@ -46,15 +29,13 @@ pub async fn listen(
                                 );
                             }
                         }
-                        3 => {
+                        10 => { // GameStateUpdate
                             if let Ok(state_update) =
-                                proto_all::GameStateUpdate::from_reader(&mut reader, &msg)
+                                state_messages::GameStateUpdate::from_reader(&mut reader, &msg)
                             {
-                                _amount += 1;
                                 if state_update.players.len() <= 0 {
                                     continue;
                                 }
-                                let _first_player = state_update.players.get(0).unwrap();
                                 match state_updates.get_mut(&header) {
                                     Some(mut updates) => updates.push(Box::new(msg)),
                                     None => {
@@ -66,10 +47,9 @@ pub async fn listen(
                                 }
                             }
                         }
-                        4 => {
-                            // Initial state
+                        11 => { // InitialState
                             if let Ok(initial_state) =
-                                proto_all::InitialState::from_reader(&mut reader, &msg)
+                                state_messages::InitialState::from_reader(&mut reader, &msg)
                             {
                                 match state_updates.get_mut(&header) {
                                     Some(mut init_states) => init_states.push(Box::new(msg)),
