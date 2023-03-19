@@ -1,6 +1,6 @@
 use crate::*;
 
-#[derive(Component, Clone, Debug,)]
+#[derive(Component, Default, Clone, Debug)]
 pub struct Position {
     pub x: f32,
     pub y: f32

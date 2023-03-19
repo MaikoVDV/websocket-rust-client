@@ -96,6 +96,8 @@ async fn main() {
     bevy_app.add_system(network_plugin::create_new_connection);
     bevy_app.listen_for_network_message::<network_messages::GameStateUpdateMessage>();
     bevy_app.listen_for_network_message::<network_messages::InitialStateMessage>();
+    bevy_app.listen_for_network_message::<network_messages::ClientConnectMessage>();
+    bevy_app.listen_for_network_message::<network_messages::ClientDisconnectMessage>();
 
     // State management
     bevy_app.add_system(listen_for_network_events);

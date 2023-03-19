@@ -1,6 +1,6 @@
 use crate::*;
 
-#[derive(Component)]
+#[derive(Component, Default)]
 pub struct Player {
     pub input_queue: GameInputQueue, // Stores inputs made this tick for sending
     pub position: Position,          // Position is x, y in f32
@@ -25,7 +25,7 @@ impl Player {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Default)]
 pub struct GameInputQueue {
     pub position: Position,
     pub pressed: bool
@@ -42,5 +42,5 @@ impl GameInputQueue {
     }
 }
 // Only put on the player that is being controlled by this client
-#[derive(Component)]
-pub struct ControlledPlayer {}
+#[derive(Component, Debug)]
+pub struct ControlledPlayer;

@@ -2,7 +2,7 @@ use crate::*;
 
 pub async fn listen(
     mut ws_receiver: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
-    state_updates: Arc<DashMap<u8, Vec<Box<Vec<u8>>>>>,
+    received_message_vec: Arc<DashMap<u8, Vec<Box<Vec<u8>>>>>,
 ) {
     loop {
         while let Some(received_data) = ws_receiver.next().await {
@@ -20,13 +20,33 @@ pub async fn listen(
                     //println!("Received a binary message with header {}", header);
                     match header {
                         0 => { // Client connected
-                            if let Ok(client_join) =
+                            if let Ok(client_connect) =
                                 conn_event_messages::ClientConnect::from_reader(&mut reader, &msg)
                             {
-                                println!(
-                                    "Received Message::ClientJoin. The client's id is {}",
-                                    client_join.client_id.to_string()
-                                );
+                                match received_message_vec.get_mut(&header) {
+                                    Some(mut client_connect_vec) => client_connect_vec.push(Box::new(msg)),
+                                    None => {
+                                        error!(
+                                            "Could not find existing entries for message kinds: {:?}",
+                                            client_connect
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                        1 => { // Client disconnected
+                            if let Ok(client_disconnect) =
+                                conn_event_messages::ClientDisconnect::from_reader(&mut reader, &msg)
+                            {
+                                match received_message_vec.get_mut(&header) {
+                                    Some(mut client_disconnect_vec) => client_disconnect_vec.push(Box::new(msg)),
+                                    None => {
+                                        error!(
+                                            "Could not find existing entries for message kinds: {:?}",
+                                            client_disconnect
+                                        );
+                                    }
+                                }
                             }
                         }
                         10 => { // GameStateUpdate
@@ -36,7 +56,7 @@ pub async fn listen(
                                 if state_update.players.len() <= 0 {
                                     continue;
                                 }
-                                match state_updates.get_mut(&header) {
+                                match received_message_vec.get_mut(&header) {
                                     Some(mut updates) => updates.push(Box::new(msg)),
                                     None => {
                                         error!(
@@ -51,7 +71,7 @@ pub async fn listen(
                             if let Ok(initial_state) =
                                 state_messages::InitialState::from_reader(&mut reader, &msg)
                             {
-                                match state_updates.get_mut(&header) {
+                                match received_message_vec.get_mut(&header) {
                                     Some(mut init_states) => init_states.push(Box::new(msg)),
                                     None => {
                                         error!(
