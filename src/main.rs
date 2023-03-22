@@ -32,6 +32,7 @@ use bevy::{
         settings::{Backends, WgpuSettings},
         RenderPlugin,
     },
+    window,
 };
 
 // Networking & Multithreading (tokio)
@@ -83,7 +84,8 @@ async fn main() {
                     backends: Some(get_platform_graphics_api()),
                     ..default()
                 },
-            }),
+            })
+            .set(ImagePlugin::default_nearest())
     );
     bevy_app.add_startup_system(setup);
 
@@ -115,8 +117,41 @@ async fn main() {
     bevy_app.run();
 }
 
-pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>, mut windows: Query<&mut Window>) {
     commands.spawn(Camera2dBundle::default());
+
+    for mut window in windows.iter_mut() {
+        window.cursor.visible = false;
+    }
+
+    // commands.spawn(SpriteBundle {
+    //     transform: Transform {
+    //         translation: Vec3::new(0.0, 0.0, 0.0),
+    //         scale: Vec3::new(5.0, 5.0, 0.0),
+    //         ..default()
+    //     },
+    //     sprite: Sprite {
+    //         color: Color::rgb(1.0, 0.0, 0.0),
+    //         ..default()
+    //     },
+    //     ..default()
+    // });
+    // commands.spawn(components::player::PlayerBundle {
+    //     server_id: components::generic::ServerID(69),
+    //     player: components::player::Player::new(),
+    //     sprite_bundle: SpriteBundle {
+    //         transform: Transform {
+    //                     translation: Vec3::new(100.0, 100.0, 0.0),
+    //                     scale: Vec3::new(100.0, 100.0, 0.0),
+    //                     ..default()
+    //                 },
+    //                 sprite: Sprite {
+    //                     color: Color::rgb(0.8, 0.8, 1.0),
+    //                     ..default()
+    //                 },
+    //                 ..default()
+    //     }
+    // });
 
     commands.spawn((
         TextBundle::from_section(
